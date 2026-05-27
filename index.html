@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Mail Mind</title>
+<style>
+  /* ── Fonts ── */
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400&display=swap');
+
+  /* ── Tokens (Minimalist B&W) ── */
+  :root {
+    --bg:        #000000;
+    --surface:   #0a0a0a;
+    --surface2:  #111111;
+    --border:    #222222;
+    --text:      #ffffff;
+    --text-dim:  #a1a1aa;
+    --bubble-me: #1a1a1a;
+    --bubble-ai: transparent;
+    --radius:    4px;
+    --font-sans: 'Inter', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── App Shell ── */
+  #app {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    max-width: 520px;
+    margin: 0 auto;
+    position: relative;
+    border-left: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+  }
+
+  /* ── Header ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    flex-shrink: 0;
+    z-index: 10;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .logo-text {
+    font-weight: 600;
+    font-size: 16px;
+    letter-spacing: -0.5px;
+    color: var(--text);
+  }
+  .status-pill {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px;
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .status-dot {
+    width: 4px; height: 4px;
+    background: var(--text);
+    border-radius: 50%;
+  }
+
+  /* ── Message List ── */
+  #messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    scroll-behavior: smooth;
+  }
+  #messages::-webkit-scrollbar { width: 3px; }
+  #messages::-webkit-scrollbar-track { background: transparent; }
+  #messages::-webkit-scrollbar-thumb { background: var(--border); }
+
+  /* ── Welcome Banner ── */
+  .welcome {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 20px 0;
+    animation: fadeUp 0.5s ease both;
+  }
+  .welcome h2 {
+    font-weight: 500;
+    font-size: 18px;
+    color: var(--text);
+  }
+  .welcome p {
+    color: var(--text-dim);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .chips {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 12px;
+    width: 100%;
+  }
+  .chip {
+    padding: 12px 16px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 13px;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+  }
+  .chip:hover {
+    color: var(--text);
+    border-color: var(--text-dim);
+  }
+
+  /* ── Bubbles ── */
+  .bubble-row {
+    display: flex;
+    animation: fadeUp 0.3s ease both;
+  }
+  .bubble-row.me  { justify-content: flex-end; }
+  .bubble-row.ai  { justify-content: flex-start; }
+
+  .bubble {
+    max-width: 85%;
+    padding: 14px 16px;
+    border-radius: var(--radius);
+    line-height: 1.6;
+    font-size: 14px;
+    position: relative;
+    word-break: break-word;
+  }
+  .bubble-row.me .bubble {
+    background: var(--bubble-me);
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  .bubble-row.ai .bubble {
+    background: var(--bubble-ai);
+    border: none;
+    padding-left: 0;
+    padding-right: 0;
+    color: var(--text-dim);
+  }
+  .bubble-row.ai .bubble strong {
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  /* Typing indicator */
+  .typing-indicator {
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(5px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Input Area ── */
+  #input-area {
+    padding: 16px;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  
+  #controls-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    min-height: 20px;
+  }
+
+  .input-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 8px 8px 8px 16px;
+    transition: border-color 0.2s;
+  }
+  .input-row:focus-within {
+    border-color: var(--text-dim);
+  }
+  #user-input {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    resize: none;
+    max-height: 120px;
+    line-height: 1.5;
+  }
+  #user-input::placeholder { color: var(--text-dim); }
+
+  .icon-btn {
+    width: 36px; height: 36px;
+    border: 1px solid transparent; 
+    background: none; 
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: var(--radius);
+    transition: all 0.2s;
+    flex-shrink: 0;
+    color: var(--text-dim);
+  }
+  .icon-btn:hover { color: var(--text); background: var(--surface); border-color: var(--border); }
+  
+  #mic-btn.listening {
+    color: var(--bg);
+    background: var(--text);
+    border-color: var(--text);
+  }
+  
+  #stop-audio-btn {
+    display: none;
+    font-size: 11px;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    color: var(--text);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    border-radius: var(--radius);
+    cursor: pointer;
+  }
+  #stop-audio-btn:hover { background: var(--border); }
+  #stop-audio-btn.visible { display: flex; align-items: center; gap: 4px; }
+
+  /* ── Transcript bar ── */
+  #voice-transcript {
+    font-size: 12px;
+    color: var(--text-dim);
+    display: none;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+  }
+  #voice-transcript.visible { display: flex; }
+
+  svg { pointer-events: none; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <div class="logo">
+      <span class="logo-text">Mail Mind</span>
+    </div>
+    <div class="status-pill">
+      <div class="status-dot"></div>
+      <span>Ready</span>
+    </div>
+  </header>
+
+  <div id="messages">
+    <div class="welcome" id="welcome">
+      <h2>Email Agent</h2>
+      <p>Interface initialized. Awaiting commands to read, summarize, or compose emails.</p>
+      <div class="chips">
+        <div class="chip" onclick="quickSend('Read my latest 3 emails')">Read inbox</div>
+        <div class="chip" onclick="quickSend('Any unread emails today?')">Check unread</div>
+        <div class="chip" onclick="quickSend('Summarise my inbox')">Summarize messages</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="input-area">
+    <div id="controls-header">
+      <div id="voice-transcript">
+        <span class="status-dot" style="background: var(--text)"></span>
+        <span id="transcript-text">Listening...</span>
+      </div>
+      <button id="stop-audio-btn" onclick="stopAudio()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12"/></svg>
+        Stop Audio
+      </button>
+    </div>
+    <div class="input-row">
+      <textarea id="user-input" rows="1" placeholder="Type a command..."></textarea>
+      <button class="icon-btn" id="mic-btn" title="Voice input" onclick="toggleMic()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+          <line x1="12" y1="19" x2="12" y2="23"/>
+          <line x1="8" y1="23" x2="16" y2="23"/>
+        </svg>
+      </button>
+      <button class="icon-btn" id="send-btn" title="Send" onclick="sendMessage()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="22" y1="2" x2="11" y2="13"/>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── Session ───────────────────────────────────────────────────────────────────
+let SESSION_ID = null;
+
+// ── DOM refs ─────────────────────────────────────────────────────────────────
+const msgList   = document.getElementById('messages');
+const inputEl   = document.getElementById('user-input');
+const sendBtn   = document.getElementById('send-btn');
+const micBtn    = document.getElementById('mic-btn');
+const voiceBar  = document.getElementById('voice-transcript');
+const txText    = document.getElementById('transcript-text');
+const stopAudioBtn = document.getElementById('stop-audio-btn');
+
+// ── Auto-grow textarea ────────────────────────────────────────────────────────
+inputEl.addEventListener('input', () => {
+  inputEl.style.height = 'auto';
+  inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px';
+});
+inputEl.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+
+function quickSend(text) {
+  inputEl.value = text;
+  sendMessage();
+}
+
+function hideWelcome() {
+  const w = document.getElementById('welcome');
+  if (w) w.remove();
+}
+
+function addBubble(role, html) {
+  hideWelcome();
+  const row = document.createElement('div');
+  row.className = 'bubble-row ' + (role === 'me' ? 'me' : 'ai');
+  const bbl = document.createElement('div');
+  bbl.className = 'bubble';
+  bbl.innerHTML = html;
+  row.appendChild(bbl);
+  msgList.appendChild(row);
+  row.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  return bbl;
+}
+
+function addTyping() {
+  hideWelcome();
+  const row = document.createElement('div');
+  row.className = 'bubble-row ai';
+  row.id = 'typing';
+  row.innerHTML = '<div class="bubble typing-indicator">Processing...</div>';
+  msgList.appendChild(row);
+  row.scrollIntoView({ behavior: 'smooth', block: 'end' });
+}
+
+function removeTyping() {
+  const t = document.getElementById('typing');
+  if (t) t.remove();
+}
+
+// ── Text to Speech & Dynamic Typing ───────────────────────────────────────────
+let currentUtterance = null;
+
+function stopAudio() {
+  if (window.speechSynthesis) {
+    window.speechSynthesis.cancel();
+  }
+  stopAudioBtn.classList.remove('visible');
+}
+
+function speakAndType(text, bubbleEl) {
+  if (!window.speechSynthesis) {
+    bubbleEl.innerHTML = text.replace(/\n/g, '<br>');
+    return;
+  }
+  
+  stopAudio(); // clear previous
+  
+  // Clean text for speech (remove markdown asterisks, etc if present)
+  const cleanText = text.replace(/[*_]/g, '');
+  currentUtterance = new SpeechSynthesisUtterance(cleanText);
+  currentUtterance.rate = 1.05; // Slightly brisk, professional pace
+  
+  // Show interrupt button
+  stopAudioBtn.classList.add('visible');
+
+  // Dynamic text sync using onboundary
+  let formattedDisplay = '';
+  bubbleEl.innerHTML = '';
+  
+  currentUtterance.onboundary = (event) => {
+    if (event.name === 'word') {
+      const charIndex = event.charIndex + event.charLength;
+      const currentSub = text.substring(0, charIndex);
+      bubbleEl.innerHTML = currentSub.replace(/\n/g, '<br>');
+      msgList.scrollTop = msgList.scrollHeight; // Auto-scroll as it types
+    }
+  };
+
+  currentUtterance.onend = () => {
+    bubbleEl.innerHTML = text.replace(/\n/g, '<br>'); // Ensure full completion
+    stopAudioBtn.classList.remove('visible');
+  };
+
+  currentUtterance.onerror = () => {
+    bubbleEl.innerHTML = text.replace(/\n/g, '<br>');
+    stopAudioBtn.classList.remove('visible');
+  };
+
+  window.speechSynthesis.speak(currentUtterance);
+}
+
+// ── Send ──────────────────────────────────────────────────────────────────────
+async function sendMessage() {
+  const text = inputEl.value.trim();
+  if (!text) return;
+  
+  stopAudio(); // Interrupt AI if speaking
+
+  addBubble('me', text.replace(/\n/g, '<br>'));
+  inputEl.value = '';
+  inputEl.style.height = 'auto';
+  sendBtn.disabled = true;
+  addTyping();
+
+  try {
+    const res = await fetch('/chat', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session_id: SESSION_ID, message: text })
+    });
+    const data = await res.json();
+
+    if (!res.ok) throw new Error(data.detail || 'Server error');
+
+    SESSION_ID = data.session_id;         
+    removeTyping();
+    
+    // Create empty bubble, let TTS fill it
+    const bubbleEl = addBubble('ai', '');
+    speakAndType(data.reply, bubbleEl);
+    
+  } catch (err) {
+    removeTyping();
+    addBubble('ai', `Error: ${err.message}`);
+  } finally {
+    sendBtn.disabled = false;
+    inputEl.focus();
+  }
+}
+
+// ── Voice Recognition (Adaptive Web & Native Android Bridge)
+const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognition = null;
+let isListening = false;
+
+// Native callback interface fired by Android MainActivity.java
+window.onAndroidSpeech = function(text, isFinal) {
+  if (text) {
+    inputEl.value = text;
+    // Auto grow input container sizing
+    inputEl.style.height = 'auto';
+    inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px';
+  }
+};
+
+function toggleMic() {
+  // Check if running inside the Android App Wrapper
+  if (window.AndroidVoiceBridge) {
+    if (isListening) {
+      isListening = false;
+      micBtn.classList.remove('mic-active');
+      micBtn.textContent = 'Mic';
+      actionBar.textContent = '';
+      window.AndroidVoiceBridge.stopSpeechRecognition();
+    } else {
+      stopSpeaking(); // Interrupt AI speech if talking
+      isListening = true;
+      micBtn.classList.add('mic-active');
+      micBtn.textContent = 'Stop';
+      actionBar.textContent = 'Listening via Android System...';
+      window.AndroidVoiceBridge.startSpeechRecognition();
+    }
+    return;
+  }
+
+  // Fallback fallback to standard desktop browser mode
+  if (!SpeechRec) {
+    alert('Speech recognition is not supported in this environment.');
+    return;
+  }
+  isListening ? stopListening() : startListening();
+}
+
+function startListening() {
+  stopSpeaking();
+  recognition = new SpeechRec();
+  recognition.lang = 'en-US';
+  recognition.interimResults = true;
+  recognition.continuous = true; 
+
+  recognition.onstart = () => {
+    isListening = true;
+    micBtn.classList.add('mic-active');
+    micBtn.textContent = 'Stop';
+    actionBar.textContent = 'Listening... (Click Stop when done)';
+  };
+
+  recognition.onresult = (evt) => {
+    let interim = '', final = '';
+    for (let i = evt.resultIndex; i < evt.results.length; i++) {
+      const t = evt.results[i][0].transcript;
+      evt.results[i].isFinal ? (final += t) : (interim += t);
+    }
+    if (interim) inputEl.value = interim;
+    if (final) {
+      inputEl.value = final.trim();
+      inputEl.style.height = 'auto';
+      inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px';
+    }
+  };
+
+  recognition.onerror = (e) => {
+    actionBar.textContent = `Mic Error: ${e.error}`;
+    stopListening();
+  };
+
+  recognition.onend = () => {
+    if(isListening) stopListening();
+  };
+
+  recognition.start();
+}
+
+function stopListening() {
+  isListening = false;
+  micBtn.classList.remove('mic-active');
+  micBtn.textContent = 'Mic';
+  actionBar.textContent = '';
+  if (recognition) { 
+    try { recognition.stop(); } catch(e){} 
+    recognition = null; 
+  }
+}
+</script>
+</body>
+</html>
+  
