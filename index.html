@@ -578,6 +578,16 @@ function stopListening() {
     recognition = null; 
   }
 }
+function stopSpeaking() {
+  console.log("Stopping voice output...");
+  if (window.speechSynthesis) {
+    try {
+      window.speechSynthesis.cancel(); // Stops the Text-to-Speech audio engine safely
+    } catch(e) {
+      console.error("Failed to cancel speech synthesis:", e);
+    }
+  }
+}
 </script>
 </body>
 </html>
