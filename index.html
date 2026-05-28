@@ -446,11 +446,16 @@ function speakAndType(text, bubbleEl) {
     if (!wasManuallyStopped) {
         setTimeout(() => {
             if (window.AndroidVoiceBridge) {
+                // -- FIX: Reactivate visual interface elements for Android app mode
+                isListening = true;
+                micBtn.classList.add('listening');
+                voiceBar.classList.add('visible');
+                txText.textContent = 'Listening...';
                 window.AndroidVoiceBridge.startSpeechRecognition();
             } else {
                 startListening();
             }
-        }, 500); // 500ms delay gives OS time to drop audio handles
+        }, 600); // 600ms delay gives hardware audio channels time to reset
     }
   };
 
@@ -556,44 +561,46 @@ function startListening() {
   recognition = new SpeechRec();
   recognition.lang = 'en-US';
   recognition.interimResults = true;
-  recognition.continuous = true; 
+  recognition.continuous = false; // -- FIX: forces mobile engine to auto-stop on silence
 
   recognition.onstart = () => {
     isListening = true;
     micBtn.classList.add('listening');
     voiceBar.classList.add('visible');
-    txText.textContent = 'Listening... (Tap mic to stop)';
+    txText.textContent = 'Listening...';
   };
 
   recognition.onresult = (evt) => {
     let interim = '', final = '';
     for (let i = evt.resultIndex; i < evt.results.length; i++) {
-      const t = evt.results[i][0].transcript;
-      evt.results[i].isFinal ? (final += t) : (interim += t);
+      if (evt.results[i].isFinal) {
+        final += evt.results[i][0].transcript;
+      } else {
+        interim += evt.results[i][0].transcript;
+      }
     }
-    if (interim) inputEl.value = interim;
-    if (final) {
-      inputEl.value = final.trim();
-      inputEl.style.height = 'auto';
-      inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px';
-      
-      // -- NEW AUTO SEND LOGIC --
-      setTimeout(() => {
-        if (inputEl.value.trim() !== '') {
-          stopListening(); // turn off mic visually
-          sendMessage();   // send the message
-        }
-      }, 500);
-    }
+    if (final) inputEl.value = final.trim();
+    else if (interim) inputEl.value = interim;
+    
+    inputEl.style.height = 'auto';
+    inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px';
   };
 
   recognition.onerror = (e) => {
-    txText.textContent = `Mic Error: ${e.error}`;
-    setTimeout(stopListening, 2000);
+    console.error("Mic error:", e.error);
   };
 
   recognition.onend = () => {
-    if(isListening) stopListening();
+    // -- FIX: Visual cleanup when user stops talking
+    isListening = false;
+    micBtn.classList.remove('listening');
+    voiceBar.classList.remove('visible');
+    
+    // Auto-send text if captured
+    const text = inputEl.value.trim();
+    if (text !== '') {
+      sendMessage();
+    }
   };
 
   try {
