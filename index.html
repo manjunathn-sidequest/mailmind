@@ -422,7 +422,8 @@ function speakAndType(text, bubbleEl) {
   // Clean text for speech (remove markdown asterisks, etc if present)
   const cleanText = text.replace(/[*_]/g, '');
   currentUtterance = new SpeechSynthesisUtterance(cleanText);
-  currentUtterance.rate = 1.05; // Slightly brisk, professional pace
+  currentUtterance.rate = 1.15; // Slightly brisk, professional pace
+
   
   stopAudioBtn.classList.add('visible');
 
@@ -510,9 +511,15 @@ let isListening = false;
 window.onAndroidSpeech = function(text, isFinal) {
   if (text) {
     inputEl.value = text;
-    // Auto grow input container sizing
     inputEl.style.height = 'auto';
     inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px';
+  }
+  
+  // -- NEW AUTO SEND LOGIC --
+  if (isFinal && inputEl.value.trim() !== '') {
+    setTimeout(() => {
+      sendMessage();
+    }, 500); // Wait half a second so the user can see what was typed
   }
 };
 
@@ -569,6 +576,14 @@ function startListening() {
       inputEl.value = final.trim();
       inputEl.style.height = 'auto';
       inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px';
+      
+      // -- NEW AUTO SEND LOGIC --
+      setTimeout(() => {
+        if (inputEl.value.trim() !== '') {
+          stopListening(); // turn off mic visually
+          sendMessage();   // send the message
+        }
+      }, 500);
     }
   };
 
