@@ -396,10 +396,16 @@ function removeTyping() {
 
 // ── Text to Speech & Dynamic Typing ───────────────────────────────────────────
 let currentUtterance = null;
+let typingInterval = null;
+let wasManuallyStopped = false; // Flag to check if user hit "Stop Audio"
 
 function stopAudio() {
+  wasManuallyStopped = true;
   if (window.speechSynthesis) {
     window.speechSynthesis.cancel();
+  }
+  if (typingInterval) {
+    clearInterval(typingInterval);
   }
   stopAudioBtn.classList.remove('visible');
 }
@@ -411,34 +417,44 @@ function speakAndType(text, bubbleEl) {
   }
   
   stopAudio(); // clear previous
+  wasManuallyStopped = false; // Reset flag for the new speech
   
   // Clean text for speech (remove markdown asterisks, etc if present)
   const cleanText = text.replace(/[*_]/g, '');
   currentUtterance = new SpeechSynthesisUtterance(cleanText);
   currentUtterance.rate = 1.05; // Slightly brisk, professional pace
   
-  // Show interrupt button
   stopAudioBtn.classList.add('visible');
 
-  // Dynamic text sync using onboundary
-  let formattedDisplay = '';
+  // Manual interval typing effect (Bypasses buggy mobile Chrome onboundary)
+  let i = 0;
   bubbleEl.innerHTML = '';
-  
-  currentUtterance.onboundary = (event) => {
-    if (event.name === 'word') {
-      const charIndex = event.charIndex + event.charLength;
-      const currentSub = text.substring(0, charIndex);
-      bubbleEl.innerHTML = currentSub.replace(/\n/g, '<br>');
-      msgList.scrollTop = msgList.scrollHeight; // Auto-scroll as it types
+  typingInterval = setInterval(() => {
+    bubbleEl.innerHTML = text.substring(0, i).replace(/\n/g, '<br>');
+    msgList.scrollTop = msgList.scrollHeight; // Auto-scroll as it types
+    i++;
+    if (i > text.length) clearInterval(typingInterval);
+  }, 25);
+
+  currentUtterance.onend = () => {
+    clearInterval(typingInterval);
+    bubbleEl.innerHTML = text.replace(/\n/g, '<br>'); // Ensure full completion
+    stopAudioBtn.classList.remove('visible');
+    
+    // Auto-resume microphone listening!
+    if (!wasManuallyStopped) {
+        setTimeout(() => {
+            if (window.AndroidVoiceBridge) {
+                window.AndroidVoiceBridge.startSpeechRecognition();
+            } else {
+                startListening();
+            }
+        }, 500); // 500ms delay gives OS time to drop audio handles
     }
   };
 
-  currentUtterance.onend = () => {
-    bubbleEl.innerHTML = text.replace(/\n/g, '<br>'); // Ensure full completion
-    stopAudioBtn.classList.remove('visible');
-  };
-
   currentUtterance.onerror = () => {
+    clearInterval(typingInterval);
     bubbleEl.innerHTML = text.replace(/\n/g, '<br>');
     stopAudioBtn.classList.remove('visible');
   };
@@ -485,7 +501,7 @@ async function sendMessage() {
   }
 }
 
-// ── Voice Recognition (Adaptive Web & Native Android Bridge)
+// ── Voice Recognition (Adaptive Web & Native Android Bridge) ─────────────────
 const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition = null;
 let isListening = false;
@@ -505,22 +521,21 @@ function toggleMic() {
   if (window.AndroidVoiceBridge) {
     if (isListening) {
       isListening = false;
-      micBtn.classList.remove('mic-active');
-      micBtn.textContent = 'Mic';
-      actionBar.textContent = '';
+      micBtn.classList.remove('listening');
+      voiceBar.classList.remove('visible');
       window.AndroidVoiceBridge.stopSpeechRecognition();
     } else {
-      stopSpeaking(); // Interrupt AI speech if talking
+      stopAudio(); // Interrupt AI speech if talking
       isListening = true;
-      micBtn.classList.add('mic-active');
-      micBtn.textContent = 'Stop';
-      actionBar.textContent = 'Listening via Android System...';
+      micBtn.classList.add('listening');
+      voiceBar.classList.add('visible');
+      txText.textContent = 'Listening via Android System...';
       window.AndroidVoiceBridge.startSpeechRecognition();
     }
     return;
   }
 
-  // Fallback fallback to standard desktop browser mode
+  // Fallback to standard desktop/mobile browser mode
   if (!SpeechRec) {
     alert('Speech recognition is not supported in this environment.');
     return;
@@ -529,7 +544,8 @@ function toggleMic() {
 }
 
 function startListening() {
-  stopSpeaking();
+  stopAudio(); // Stop TTS to avoid feedback loops
+  
   recognition = new SpeechRec();
   recognition.lang = 'en-US';
   recognition.interimResults = true;
@@ -537,9 +553,9 @@ function startListening() {
 
   recognition.onstart = () => {
     isListening = true;
-    micBtn.classList.add('mic-active');
-    micBtn.textContent = 'Stop';
-    actionBar.textContent = 'Listening... (Click Stop when done)';
+    micBtn.classList.add('listening');
+    voiceBar.classList.add('visible');
+    txText.textContent = 'Listening... (Tap mic to stop)';
   };
 
   recognition.onresult = (evt) => {
@@ -557,38 +573,30 @@ function startListening() {
   };
 
   recognition.onerror = (e) => {
-    actionBar.textContent = `Mic Error: ${e.error}`;
-    stopListening();
+    txText.textContent = `Mic Error: ${e.error}`;
+    setTimeout(stopListening, 2000);
   };
 
   recognition.onend = () => {
     if(isListening) stopListening();
   };
 
-  recognition.start();
+  try {
+    recognition.start();
+  } catch(e) { 
+    console.error("Failed to start mic:", e); 
+  }
 }
 
 function stopListening() {
   isListening = false;
-  micBtn.classList.remove('mic-active');
-  micBtn.textContent = 'Mic';
-  actionBar.textContent = '';
+  micBtn.classList.remove('listening');
+  voiceBar.classList.remove('visible');
   if (recognition) { 
     try { recognition.stop(); } catch(e){} 
     recognition = null; 
   }
 }
-function stopSpeaking() {
-  console.log("Stopping voice output...");
-  if (window.speechSynthesis) {
-    try {
-      window.speechSynthesis.cancel(); // Stops the Text-to-Speech audio engine safely
-    } catch(e) {
-      console.error("Failed to cancel speech synthesis:", e);
-    }
-  }
-}
 </script>
 </body>
 </html>
-  
