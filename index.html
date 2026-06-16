@@ -8,7 +8,7 @@
   /* ── Fonts ── */
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400&display=swap');
 
-  /* ── Tokens (Minimalist B&W) ── */
+  /* ── Tokens (Minimalist B&W — identical to v1) ── */
   :root {
     --bg:        #000000;
     --surface:   #0a0a0a;
@@ -52,35 +52,45 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 20px;
+    padding: 14px 20px;
     border-bottom: 1px solid var(--border);
     background: var(--bg);
     flex-shrink: 0;
     z-index: 10;
   }
-  .logo {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
+  .logo { display: flex; align-items: center; gap: 8px; }
   .logo-text {
     font-weight: 600;
     font-size: 16px;
     letter-spacing: -0.5px;
     color: var(--text);
   }
-  .status-pill {
-    display: flex; align-items: center; gap: 6px;
-    font-size: 11px;
-    color: var(--text-dim);
+
+  /* ── Mode Toggle (Normal / Indic) ── */
+  #mode-toggle {
+    display: flex;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .mode-btn {
+    padding: 5px 12px;
+    background: none;
+    border: none;
+    border-right: 1px solid var(--border);
+    cursor: pointer;
+    font-size: 10px;
     font-family: var(--font-mono);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.8px;
+    color: var(--text-dim);
+    transition: background 0.15s, color 0.15s;
+    line-height: 1;
   }
-  .status-dot {
-    width: 4px; height: 4px;
+  .mode-btn:last-child { border-right: none; }
+  .mode-btn.active {
     background: var(--text);
-    border-radius: 50%;
+    color: var(--bg);
   }
 
   /* ── Message List ── */
@@ -106,16 +116,8 @@
     padding: 20px 0;
     animation: fadeUp 0.5s ease both;
   }
-  .welcome h2 {
-    font-weight: 500;
-    font-size: 18px;
-    color: var(--text);
-  }
-  .welcome p {
-    color: var(--text-dim);
-    font-size: 14px;
-    line-height: 1.6;
-  }
+  .welcome h2 { font-weight: 500; font-size: 18px; color: var(--text); }
+  .welcome p  { color: var(--text-dim); font-size: 14px; line-height: 1.6; }
   .chips {
     display: flex;
     flex-direction: column;
@@ -134,18 +136,31 @@
     transition: all 0.2s;
     text-align: left;
   }
-  .chip:hover {
-    color: var(--text);
-    border-color: var(--text-dim);
+  .chip:hover { color: var(--text); border-color: var(--text-dim); }
+
+  /* ── Mode info banner (shown in Indic mode) ── */
+  #mode-banner {
+    display: none;
+    margin: 0 16px;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 12px;
+    font-family: var(--font-mono);
+    color: var(--text-dim);
+    background: var(--surface2);
+    flex-shrink: 0;
   }
+  #mode-banner.visible { display: block; }
+  #mode-banner span { color: var(--text); }
 
   /* ── Bubbles ── */
   .bubble-row {
     display: flex;
     animation: fadeUp 0.3s ease both;
   }
-  .bubble-row.me  { justify-content: flex-end; }
-  .bubble-row.ai  { justify-content: flex-start; }
+  .bubble-row.me { justify-content: flex-end; }
+  .bubble-row.ai { justify-content: flex-start; }
 
   .bubble {
     max-width: 85%;
@@ -168,9 +183,11 @@
     padding-right: 0;
     color: var(--text-dim);
   }
-  .bubble-row.ai .bubble strong {
+  /* Voice-mode bubbles get a subtle left marker */
+  .bubble-row.ai .bubble.voice-reply {
+    border-left: 2px solid var(--border);
+    padding-left: 12px;
     color: var(--text);
-    font-weight: 600;
   }
 
   /* Typing indicator */
@@ -193,15 +210,68 @@
     border-top: 1px solid var(--border);
     flex-shrink: 0;
   }
-  
+
   #controls-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 8px;
-    min-height: 20px;
+    min-height: 22px;
   }
 
+  /* Voice transcript bar */
+  #voice-transcript {
+    font-size: 12px;
+    color: var(--text-dim);
+    display: none;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    flex: 1;
+    min-width: 0;
+  }
+  #voice-transcript.visible { display: flex; }
+  #transcript-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Recording pulse dot */
+  .rec-dot {
+    width: 6px; height: 6px;
+    background: var(--text);
+    border-radius: 50%;
+    flex-shrink: 0;
+    animation: recPulse 1s infinite;
+  }
+  @keyframes recPulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.2; }
+  }
+
+  /* Stop audio button */
+  #stop-audio-btn {
+    display: none;
+    font-size: 11px;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    flex-shrink: 0;
+    gap: 4px;
+    align-items: center;
+    transition: background 0.15s;
+  }
+  #stop-audio-btn:hover { background: var(--border); }
+  #stop-audio-btn.visible { display: flex; }
+
+  /* Input row */
   .input-row {
     display: flex;
     align-items: center;
@@ -212,9 +282,8 @@
     padding: 8px 8px 8px 16px;
     transition: border-color 0.2s;
   }
-  .input-row:focus-within {
-    border-color: var(--text-dim);
-  }
+  .input-row:focus-within { border-color: var(--text-dim); }
+
   #user-input {
     flex: 1;
     background: none;
@@ -231,8 +300,8 @@
 
   .icon-btn {
     width: 36px; height: 36px;
-    border: 1px solid transparent; 
-    background: none; 
+    border: 1px solid transparent;
+    background: none;
     cursor: pointer;
     display: flex; align-items: center; justify-content: center;
     border-radius: var(--radius);
@@ -241,38 +310,23 @@
     color: var(--text-dim);
   }
   .icon-btn:hover { color: var(--text); background: var(--surface); border-color: var(--border); }
-  
+
   #mic-btn.listening {
     color: var(--bg);
     background: var(--text);
     border-color: var(--text);
   }
-  
-  #stop-audio-btn {
-    display: none;
-    font-size: 11px;
+
+  /* Special mode: mic shows REC label */
+  #mic-label {
+    font-size: 9px;
     font-family: var(--font-mono);
     text-transform: uppercase;
-    color: var(--text);
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    padding: 4px 10px;
-    border-radius: var(--radius);
-    cursor: pointer;
-  }
-  #stop-audio-btn:hover { background: var(--border); }
-  #stop-audio-btn.visible { display: flex; align-items: center; gap: 4px; }
-
-  /* ── Transcript bar ── */
-  #voice-transcript {
-    font-size: 12px;
-    color: var(--text-dim);
+    letter-spacing: 0.5px;
     display: none;
-    align-items: center;
-    gap: 8px;
-    font-family: var(--font-mono);
   }
-  #voice-transcript.visible { display: flex; }
+  #mic-btn.listening #mic-label { display: block; }
+  #mic-btn.listening #mic-icon  { display: none; }
 
   svg { pointer-events: none; }
 </style>
@@ -280,16 +334,23 @@
 <body>
 <div id="app">
 
+  <!-- ── Header ── -->
   <header>
     <div class="logo">
       <span class="logo-text">Mail Mind</span>
     </div>
-    <div class="status-pill">
-      <div class="status-dot"></div>
-      <span>Ready</span>
+    <div id="mode-toggle">
+      <button class="mode-btn active" id="btn-normal"  onclick="setMode('normal')">Normal</button>
+      <button class="mode-btn"        id="btn-special" onclick="setMode('special')">Indic</button>
     </div>
   </header>
 
+  <!-- ── Indic mode info strip ── -->
+  <div id="mode-banner">
+    Indic mode — mic records voice, reply in <span id="lang-label">Hindi</span>
+  </div>
+
+  <!-- ── Messages ── -->
   <div id="messages">
     <div class="welcome" id="welcome">
       <h2>Email Agent</h2>
@@ -298,30 +359,38 @@
         <div class="chip" onclick="quickSend('Read my latest 3 emails')">Read inbox</div>
         <div class="chip" onclick="quickSend('Any unread emails today?')">Check unread</div>
         <div class="chip" onclick="quickSend('Summarise my inbox')">Summarize messages</div>
+        <div class="chip" onclick="quickSend('Send test email to myself')">Send a test email</div>
       </div>
     </div>
   </div>
 
+  <!-- ── Input Area ── -->
   <div id="input-area">
     <div id="controls-header">
       <div id="voice-transcript">
-        <span class="status-dot" style="background: var(--text)"></span>
+        <span class="rec-dot"></span>
         <span id="transcript-text">Listening...</span>
       </div>
       <button id="stop-audio-btn" onclick="stopAudio()">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12"/></svg>
-        Stop Audio
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+          <rect x="6" y="6" width="12" height="12"/>
+        </svg>
+        Stop
       </button>
     </div>
+
     <div class="input-row">
       <textarea id="user-input" rows="1" placeholder="Type a command..."></textarea>
       <button class="icon-btn" id="mic-btn" title="Voice input" onclick="toggleMic()">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-          <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-          <line x1="12" y1="19" x2="12" y2="23"/>
-          <line x1="8" y1="23" x2="16" y2="23"/>
-        </svg>
+        <span id="mic-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <line x1="12" y1="19" x2="12" y2="23"/>
+            <line x1="8" y1="23" x2="16" y2="23"/>
+          </svg>
+        </span>
+        <span id="mic-label">REC</span>
       </button>
       <button class="icon-btn" id="send-btn" title="Send" onclick="sendMessage()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -332,22 +401,87 @@
     </div>
   </div>
 
-</div>
+</div><!-- /#app -->
 
 <script>
-// ── Session ───────────────────────────────────────────────────────────────────
-let SESSION_ID = null;
+// ════════════════════════════════════════════════════════════════════════════
+// ── GLOBAL STATE
+// ════════════════════════════════════════════════════════════════════════════
+let SESSION_ID    = null;    // shared across both modes
+let currentMode   = 'normal'; // 'normal' | 'special'
+let isListening   = false;
+let wasManuallyStopped = false;
 
-// ── DOM refs ─────────────────────────────────────────────────────────────────
-const msgList   = document.getElementById('messages');
-const inputEl   = document.getElementById('user-input');
-const sendBtn   = document.getElementById('send-btn');
-const micBtn    = document.getElementById('mic-btn');
-const voiceBar  = document.getElementById('voice-transcript');
-const txText    = document.getElementById('transcript-text');
+let audioContext     = null;
+let analyser         = null;
+let microphone       = null;
+let javascriptNode   = null;
+
+// Normal mode (Web Speech API)
+const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognition = null;
+
+// Normal mode TTS
+let currentUtterance = null;
+let typingInterval   = null;
+
+// Special mode (MediaRecorder)
+let mediaRecorder = null;
+let audioChunks   = [];
+let mediaStream   = null;
+
+// Special mode TTS (HTML5 Audio)
+let currentAudioEl = null;
+
+// Language label map for the info banner
+const LANG_LABELS = {
+  'hi-IN': 'Hindi', 'ta-IN': 'Tamil', 'te-IN': 'Telugu',
+  'kn-IN': 'Kannada', 'ml-IN': 'Malayalam', 'mr-IN': 'Marathi',
+  'bn-IN': 'Bengali', 'gu-IN': 'Gujarati', 'pa-IN': 'Punjabi',
+};
+
+// ════════════════════════════════════════════════════════════════════════════
+// ── DOM REFERENCES
+// ════════════════════════════════════════════════════════════════════════════
+const msgList      = document.getElementById('messages');
+const inputEl      = document.getElementById('user-input');
+const sendBtn      = document.getElementById('send-btn');
+const micBtn       = document.getElementById('mic-btn');
+const voiceBar     = document.getElementById('voice-transcript');
+const txText       = document.getElementById('transcript-text');
 const stopAudioBtn = document.getElementById('stop-audio-btn');
+const modeBanner   = document.getElementById('mode-banner');
+const langLabel    = document.getElementById('lang-label');
 
-// ── Auto-grow textarea ────────────────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════════════════════
+// ── MODE MANAGEMENT
+// ════════════════════════════════════════════════════════════════════════════
+function setMode(mode) {
+  stopAudio();
+  if (isListening) stopListening();
+
+  currentMode = mode;
+
+  document.getElementById('btn-normal').classList.toggle('active', mode === 'normal');
+  document.getElementById('btn-special').classList.toggle('active', mode === 'special');
+
+  if (mode === 'special') {
+    modeBanner.classList.add('visible');
+    inputEl.placeholder = 'Type in English or tap mic to speak in your language...';
+    // Detect lang label from /health endpoint (best-effort, non-blocking)
+    fetch('/health').then(r => r.json()).then(d => {
+      const lbl = LANG_LABELS[d.sarvam_lang] || d.sarvam_lang || 'Hindi';
+      langLabel.textContent = lbl;
+    }).catch(() => {});
+  } else {
+    modeBanner.classList.remove('visible');
+    inputEl.placeholder = 'Type a command...';
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// ── TEXTAREA AUTO-GROW
+// ════════════════════════════════════════════════════════════════════════════
 inputEl.addEventListener('input', () => {
   inputEl.style.height = 'auto';
   inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px';
@@ -356,22 +490,28 @@ inputEl.addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
 });
 
+// ════════════════════════════════════════════════════════════════════════════
+// ── QUICK SUGGESTION CHIPS
+// ════════════════════════════════════════════════════════════════════════════
 function quickSend(text) {
   inputEl.value = text;
   sendMessage();
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+// ── BUBBLE HELPERS
+// ════════════════════════════════════════════════════════════════════════════
 function hideWelcome() {
   const w = document.getElementById('welcome');
   if (w) w.remove();
 }
 
-function addBubble(role, html) {
+function addBubble(role, html, extraClass = '') {
   hideWelcome();
   const row = document.createElement('div');
   row.className = 'bubble-row ' + (role === 'me' ? 'me' : 'ai');
   const bbl = document.createElement('div');
-  bbl.className = 'bubble';
+  bbl.className = 'bubble' + (extraClass ? ' ' + extraClass : '');
   bbl.innerHTML = html;
   row.appendChild(bbl);
   msgList.appendChild(row);
@@ -379,14 +519,19 @@ function addBubble(role, html) {
   return bbl;
 }
 
-function addTyping() {
+function addTyping(message = 'Processing...') {
   hideWelcome();
   const row = document.createElement('div');
   row.className = 'bubble-row ai';
   row.id = 'typing';
-  row.innerHTML = '<div class="bubble typing-indicator">Processing...</div>';
+  row.innerHTML = `<div class="bubble typing-indicator" id="typing-text">${message}</div>`;
   msgList.appendChild(row);
   row.scrollIntoView({ behavior: 'smooth', block: 'end' });
+}
+
+function updateTyping(message) {
+  const el = document.getElementById('typing-text');
+  if (el) el.textContent = message;
 }
 
 function removeTyping() {
@@ -394,73 +539,78 @@ function removeTyping() {
   if (t) t.remove();
 }
 
-// ── Text to Speech & Dynamic Typing ───────────────────────────────────────────
-let currentUtterance = null;
-let typingInterval = null;
-let wasManuallyStopped = false; // Flag to check if user hit "Stop Audio"
-
+// ════════════════════════════════════════════════════════════════════════════
+// ── STOP AUDIO (handles both browser TTS and Sarvam HTML5 Audio)
+// ════════════════════════════════════════════════════════════════════════════
 function stopAudio() {
   wasManuallyStopped = true;
-  if (window.speechSynthesis) {
-    window.speechSynthesis.cancel();
+
+  // Stop browser Web Speech TTS
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
+
+  // Stop Sarvam HTML5 Audio element
+  if (currentAudioEl) {
+    currentAudioEl.pause();
+    currentAudioEl.src = '';
+    currentAudioEl = null;
   }
-  if (typingInterval) {
-    clearInterval(typingInterval);
-  }
+
+  // Clear typing animation interval
+  if (typingInterval) { clearInterval(typingInterval); typingInterval = null; }
+
   stopAudioBtn.classList.remove('visible');
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+// ── NORMAL MODE: speakAndType  (Web Speech API TTS + character-by-char reveal)
+// ════════════════════════════════════════════════════════════════════════════
 function speakAndType(text, bubbleEl) {
   if (!window.speechSynthesis) {
     bubbleEl.innerHTML = text.replace(/\n/g, '<br>');
     return;
   }
-  
-  stopAudio(); // clear previous
-  wasManuallyStopped = false; // Reset flag for the new speech
-  
-  // Clean text for speech (remove markdown asterisks, etc if present)
+
+  stopAudio();
+  wasManuallyStopped = false;
+
   const cleanText = text.replace(/[*_]/g, '');
   currentUtterance = new SpeechSynthesisUtterance(cleanText);
-  currentUtterance.rate = 1.15; // Slightly brisk, professional pace
+  currentUtterance.rate = 1.15;
 
-  
   stopAudioBtn.classList.add('visible');
 
-  // Manual interval typing effect (Bypasses buggy mobile Chrome onboundary)
+  // Character-reveal animation in sync with speech
   let i = 0;
   bubbleEl.innerHTML = '';
   typingInterval = setInterval(() => {
     bubbleEl.innerHTML = text.substring(0, i).replace(/\n/g, '<br>');
-    msgList.scrollTop = msgList.scrollHeight; // Auto-scroll as it types
+    msgList.scrollTop = msgList.scrollHeight;
     i++;
     if (i > text.length) clearInterval(typingInterval);
   }, 25);
 
   currentUtterance.onend = () => {
-    clearInterval(typingInterval);
-    bubbleEl.innerHTML = text.replace(/\n/g, '<br>'); // Ensure full completion
+    if (typingInterval) clearInterval(typingInterval);
+    bubbleEl.innerHTML = text.replace(/\n/g, '<br>');
     stopAudioBtn.classList.remove('visible');
-    
-    // Auto-resume microphone listening!
+
     if (!wasManuallyStopped) {
-        setTimeout(() => {
-            if (window.AndroidVoiceBridge) {
-                // -- FIX: Reactivate visual interface elements for Android app mode
-                isListening = true;
-                micBtn.classList.add('listening');
-                voiceBar.classList.add('visible');
-                txText.textContent = 'Listening...';
-                window.AndroidVoiceBridge.startSpeechRecognition();
-            } else {
-                startListening();
-            }
-        }, 600); // 600ms delay gives hardware audio channels time to reset
+      setTimeout(() => {
+        if (window.AndroidVoiceBridge) {
+          isListening = true;
+          micBtn.classList.add('listening');
+          voiceBar.classList.add('visible');
+          txText.textContent = 'Listening via Android...';
+          window.AndroidVoiceBridge.startSpeechRecognition();
+        } else {
+          startListening();
+        }
+      }, 600);
     }
   };
 
   currentUtterance.onerror = () => {
-    clearInterval(typingInterval);
+    if (typingInterval) clearInterval(typingInterval);
     bubbleEl.innerHTML = text.replace(/\n/g, '<br>');
     stopAudioBtn.classList.remove('visible');
   };
@@ -468,36 +618,85 @@ function speakAndType(text, bubbleEl) {
   window.speechSynthesis.speak(currentUtterance);
 }
 
-// ── Send ──────────────────────────────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════════════════════
+// ── SPECIAL MODE: playSarvamAudio  (HTML5 Audio + auto-restart listening)
+// ════════════════════════════════════════════════════════════════════════════
+function playSarvamAudio(base64Data) {
+  stopAudio();
+  wasManuallyStopped = false;
+
+  const audio = new Audio(`data:audio/wav;base64,${base64Data}`);
+  currentAudioEl = audio;
+  stopAudioBtn.classList.add('visible');
+
+  audio.onplay = () => {
+    stopAudioBtn.classList.add('visible');
+  };
+
+  audio.onended = () => {
+    stopAudioBtn.classList.remove('visible');
+    currentAudioEl = null;
+
+    // Hands-free loop: auto-restart Indic voice recording
+    if (!wasManuallyStopped && currentMode === 'special') {
+      setTimeout(() => {
+        if (window.AndroidVoiceBridge) {
+          // Android native bridge path
+          isListening = true;
+          micBtn.classList.add('listening');
+          voiceBar.classList.add('visible');
+          txText.textContent = 'Recording... tap mic to send';
+          window.AndroidVoiceBridge.startSpeechRecognition();
+        } else {
+          startSpecialListening();
+        }
+      }, 600);
+    }
+  };
+
+  audio.onerror = (e) => {
+    console.error('Sarvam audio playback error:', e);
+    stopAudioBtn.classList.remove('visible');
+    currentAudioEl = null;
+  };
+
+  audio.play().catch(err => {
+    console.error('Audio.play() failed:', err);
+    stopAudioBtn.classList.remove('visible');
+    currentAudioEl = null;
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// ── NORMAL MODE: sendMessage  (text → /chat → browser TTS)
+// ════════════════════════════════════════════════════════════════════════════
 async function sendMessage() {
   const text = inputEl.value.trim();
   if (!text) return;
-  
-  stopAudio(); // Interrupt AI if speaking
+
+  stopAudio();
 
   addBubble('me', text.replace(/\n/g, '<br>'));
   inputEl.value = '';
   inputEl.style.height = 'auto';
   sendBtn.disabled = true;
-  addTyping();
+  addTyping('Processing...');
 
   try {
     const res = await fetch('/chat', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ session_id: SESSION_ID, message: text })
+      body:    JSON.stringify({ session_id: SESSION_ID, message: text }),
     });
     const data = await res.json();
-
     if (!res.ok) throw new Error(data.detail || 'Server error');
 
-    SESSION_ID = data.session_id;         
+    SESSION_ID = data.session_id;
     removeTyping();
-    
-    // Create empty bubble, let TTS fill it
+
     const bubbleEl = addBubble('ai', '');
     speakAndType(data.reply, bubbleEl);
-    
+
   } catch (err) {
     removeTyping();
     addBubble('ai', `Error: ${err.message}`);
@@ -507,29 +706,69 @@ async function sendMessage() {
   }
 }
 
-// ── Voice Recognition (Adaptive Web & Native Android Bridge) ─────────────────
-const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-let recognition = null;
-let isListening = false;
+// ════════════════════════════════════════════════════════════════════════════
+// ── SPECIAL MODE: sendSpecialVoice  (audio blob → /chat-voice → Sarvam audio)
+// ════════════════════════════════════════════════════════════════════════════
+async function sendSpecialVoice(audioBlob, mimeType) {
+  stopAudio();
 
-// Native callback interface fired by Android MainActivity.java
-window.onAndroidSpeech = function(text, isFinal) {
-  if (text) {
-    inputEl.value = text;
-    inputEl.style.height = 'auto';
-    inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px';
-  }
-  
-  // -- NEW AUTO SEND LOGIC --
-  if (isFinal && inputEl.value.trim() !== '') {
-    setTimeout(() => {
-      sendMessage();
-    }, 500); // Wait half a second so the user can see what was typed
-  }
-};
+  addBubble('me', '[Voice message]');
+  sendBtn.disabled = true;
+  addTyping('Transcribing...');
 
+  // Animate through the pipeline stages while waiting
+  const stages = [
+    'Transcribing...',
+    'Thinking...',
+    'Translating...',
+    'Generating audio...',
+  ];
+  let stageIdx = 0;
+  const stageInterval = setInterval(() => {
+    stageIdx = (stageIdx + 1) % stages.length;
+    updateTyping(stages[stageIdx]);
+  }, 1800);
+
+  try {
+    const ext = mimeType.includes('webm') ? 'webm'
+              : mimeType.includes('ogg')  ? 'ogg'
+              : mimeType.includes('mp4')  ? 'mp4'
+              : 'wav';
+
+    const formData = new FormData();
+    formData.append('audio', audioBlob, `recording.${ext}`);
+    if (SESSION_ID) formData.append('session_id', SESSION_ID);
+
+    const res = await fetch('/chat-voice', { method: 'POST', body: formData });
+
+    clearInterval(stageInterval);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Server error');
+
+    SESSION_ID = data.session_id;
+    removeTyping();
+
+    // Show translated Indic text in a styled bubble
+    addBubble('ai', data.reply_text.replace(/\n/g, '<br>'), 'voice-reply');
+
+    // Play the Sarvam-generated audio (auto-restarts recording when done)
+    playSarvamAudio(data.audio_base64);
+
+  } catch (err) {
+    clearInterval(stageInterval);
+    removeTyping();
+    addBubble('ai', `Error: ${err.message}`);
+  } finally {
+    sendBtn.disabled = false;
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// ── MIC TOGGLE ROUTER  (branches on currentMode)
+// ════════════════════════════════════════════════════════════════════════════
 function toggleMic() {
-  // Check if running inside the Android App Wrapper
+
+  // ── Android native bridge (works for both modes) ─────────────────────────
   if (window.AndroidVoiceBridge) {
     if (isListening) {
       isListening = false;
@@ -537,31 +776,46 @@ function toggleMic() {
       voiceBar.classList.remove('visible');
       window.AndroidVoiceBridge.stopSpeechRecognition();
     } else {
-      stopAudio(); // Interrupt AI speech if talking
+      stopAudio();
       isListening = true;
       micBtn.classList.add('listening');
       voiceBar.classList.add('visible');
-      txText.textContent = 'Listening via Android System...';
+      txText.textContent = currentMode === 'special'
+        ? 'Recording... tap mic to send'
+        : 'Listening via Android...';
       window.AndroidVoiceBridge.startSpeechRecognition();
     }
     return;
   }
 
-  // Fallback to standard desktop/mobile browser mode
+  // ── Special mode: MediaRecorder ──────────────────────────────────────────
+  if (currentMode === 'special') {
+    if (isListening) {
+      stopSpecialListening();   // stop → triggers onstop → sendSpecialVoice
+    } else {
+      startSpecialListening();
+    }
+    return;
+  }
+
+  // ── Normal mode: Web Speech API ──────────────────────────────────────────
   if (!SpeechRec) {
-    alert('Speech recognition is not supported in this environment.');
+    alert('Speech recognition is not supported in this browser.');
     return;
   }
   isListening ? stopListening() : startListening();
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+// ── NORMAL MODE: Web Speech API listener
+// ════════════════════════════════════════════════════════════════════════════
 function startListening() {
-  stopAudio(); // Stop TTS to avoid feedback loops
-  
+  stopAudio();
+
   recognition = new SpeechRec();
-  recognition.lang = 'en-US';
-  recognition.interimResults = true;
-  recognition.continuous = false; // -- FIX: forces mobile engine to auto-stop on silence
+  recognition.lang            = 'en-US';
+  recognition.interimResults  = true;
+  recognition.continuous      = false;
 
   recognition.onstart = () => {
     isListening = true;
@@ -573,52 +827,185 @@ function startListening() {
   recognition.onresult = (evt) => {
     let interim = '', final = '';
     for (let i = evt.resultIndex; i < evt.results.length; i++) {
-      if (evt.results[i].isFinal) {
-        final += evt.results[i][0].transcript;
-      } else {
-        interim += evt.results[i][0].transcript;
-      }
+      if (evt.results[i].isFinal) final  += evt.results[i][0].transcript;
+      else                        interim += evt.results[i][0].transcript;
     }
     if (final) inputEl.value = final.trim();
     else if (interim) inputEl.value = interim;
-    
     inputEl.style.height = 'auto';
     inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px';
   };
 
-  recognition.onerror = (e) => {
-    console.error("Mic error:", e.error);
-  };
+  recognition.onerror = (e) => { console.error('Mic error:', e.error); };
 
   recognition.onend = () => {
-    // -- FIX: Visual cleanup when user stops talking
     isListening = false;
     micBtn.classList.remove('listening');
     voiceBar.classList.remove('visible');
-    
-    // Auto-send text if captured
     const text = inputEl.value.trim();
-    if (text !== '') {
-      sendMessage();
-    }
+    if (text) sendMessage();
   };
 
-  try {
-    recognition.start();
-  } catch(e) { 
-    console.error("Failed to start mic:", e); 
-  }
+  try { recognition.start(); } catch (e) { console.error('Failed to start mic:', e); }
 }
 
 function stopListening() {
   isListening = false;
   micBtn.classList.remove('listening');
   voiceBar.classList.remove('visible');
-  if (recognition) { 
-    try { recognition.stop(); } catch(e){} 
-    recognition = null; 
+  if (recognition) {
+    try { recognition.stop(); } catch (e) {}
+    recognition = null;
   }
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// ── SPECIAL MODE: MediaRecorder (Indic voice → blob → /chat-voice)
+// ════════════════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════════════════
+// ── INDIC MODE VOICE RECORDING WITH SILENCE DETECTION
+// ════════════════════════════════════════════════════════════════════════════
+async function startSpecialListening() {
+  stopAudio();
+
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    alert('Microphone access is not available in this browser.');
+    return;
+  }
+
+  try {
+    mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch (err) {
+    console.error('getUserMedia error:', err);
+    alert('Microphone permission denied. Please allow microphone access and try again.');
+    return;
+  }
+
+  // Set up Web Audio API nodes to measure mic volume frames
+  try {
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = audioContext.createAnalyser();
+    microphone = audioContext.createMediaStreamSource(mediaStream);
+    javascriptNode = audioContext.createScriptProcessor(2048, 1, 1);
+
+    analyser.smoothingTimeConstant = 0.3;
+    analyser.fftSize = 1024;
+
+    microphone.connect(analyser);
+    analyser.connect(javascriptNode);
+    javascriptNode.connect(audioContext.destination);
+
+    let silenceStart = Date.now();
+    const SILENCE_THRESHOLD = 8;     // Noise floor volume threshold
+    const SILENCE_DURATION = 2000;    // 2 full seconds of continuous silence auto-stops
+
+    javascriptNode.onaudioprocess = () => {
+      const array = new Uint8Array(analyser.frequencyBinCount);
+      analyser.getByteFrequencyData(array);
+      let values = 0;
+
+      for (let i = 0; i < array.length; i++) {
+        values += array[i];
+      }
+      const average = values / array.length;
+
+      // If user is actively speaking, push the timer out
+      if (average > SILENCE_THRESHOLD) {
+        silenceStart = Date.now(); 
+      } else {
+        // If they stop talking for 2 seconds, execute auto-send
+        if (Date.now() - silenceStart > SILENCE_DURATION) {
+          if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+            txText.textContent = 'Processing speech...';
+            stopSpecialListening(); 
+          }
+        }
+      }
+    };
+  } catch (e) {
+    console.error("Silence detection setup failed:", e);
+  }
+
+  const mimeType =
+    MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' :
+    MediaRecorder.isTypeSupported('audio/webm')             ? 'audio/webm'             :
+    MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')  ? 'audio/ogg;codecs=opus'  :
+    MediaRecorder.isTypeSupported('audio/mp4')              ? 'audio/mp4'              : '';
+
+  try {
+    mediaRecorder = mimeType ? new MediaRecorder(mediaStream, { mimeType }) : new MediaRecorder(mediaStream);
+  } catch (err) {
+    console.error('MediaRecorder init error:', err);
+    mediaStream.getTracks().forEach(t => t.stop());
+    return;
+  }
+
+  audioChunks = [];
+  mediaRecorder.ondataavailable = (evt) => { if (evt.data && evt.data.size > 0) audioChunks.push(evt.data); };
+
+  mediaRecorder.onstop = () => {
+    // Teardown raw audio listener threads safely
+    if (javascriptNode) { javascriptNode.disconnect(); javascriptNode = null; }
+    if (microphone) { microphone.disconnect(); microphone = null; }
+    if (analyser) { analyser.disconnect(); analyser = null; }
+    if (audioContext) { audioContext.close(); audioContext = null; }
+    if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
+
+    isListening = false;
+    micBtn.classList.remove('listening');
+    voiceBar.classList.remove('visible');
+
+    if (audioChunks.length === 0) return;
+
+    const effectiveMime = mimeType || 'audio/webm';
+    const audioBlob     = new Blob(audioChunks, { type: effectiveMime });
+    sendSpecialVoice(audioBlob, effectiveMime);
+  };
+
+  mediaRecorder.onerror = () => { stopSpecialListening(); };
+  mediaRecorder.start(250);
+
+  isListening = true;
+  micBtn.classList.add('listening');
+  voiceBar.classList.add('visible');
+  txText.textContent = 'Recording — speak now...';
+}
+
+function stopSpecialListening() {
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop();
+  } else {
+    isListening = false;
+    micBtn.classList.remove('listening');
+    voiceBar.classList.remove('visible');
+    
+    if (javascriptNode) { javascriptNode.disconnect(); javascriptNode = null; }
+    if (microphone) { microphone.disconnect(); microphone = null; }
+    if (analyser) { analyser.disconnect(); analyser = null; }
+    if (audioContext) { audioContext.close(); audioContext = null; }
+    if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// ── ANDROID NATIVE BRIDGE CALLBACKS
+// Works for both normal and special modes — Android side handles STT,
+// then calls window.onAndroidSpeech with the transcribed text.
+// ════════════════════════════════════════════════════════════════════════════
+window.onAndroidSpeech = function(text, isFinal) {
+  if (text) {
+    inputEl.value = text;
+    inputEl.style.height = 'auto';
+    inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px';
+  }
+
+  if (isFinal && inputEl.value.trim() !== '') {
+    // In special mode, typing is still sent to /chat (English fallback).
+    // True Indic voice from Android is handled by the bridge calling
+    // startSpecialListening via the mediaRecorder path instead.
+    setTimeout(() => sendMessage(), 500);
+  }
+};
 </script>
 </body>
 </html>
