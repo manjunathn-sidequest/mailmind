@@ -5,10 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>Mail Mind</title>
 <style>
-  /* ── Fonts ── */
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400&display=swap');
 
-  /* ── Tokens (Minimalist B&W — identical to v1) ── */
   :root {
     --bg:        #000000;
     --surface:   #0a0a0a;
@@ -58,13 +56,27 @@
     flex-shrink: 0;
     z-index: 10;
   }
-  .logo { display: flex; align-items: center; gap: 8px; }
+  .header-left { display: flex; align-items: center; gap: 12px; }
   .logo-text {
     font-weight: 600;
     font-size: 16px;
     letter-spacing: -0.5px;
     color: var(--text);
   }
+
+  /* Contacts icon button in header */
+  #contacts-btn {
+    width: 28px; height: 28px;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-dim);
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  #contacts-btn:hover { color: var(--text); border-color: var(--text-dim); }
 
   /* ── Mode Toggle (Normal / Indic) ── */
   #mode-toggle {
@@ -88,10 +100,7 @@
     line-height: 1;
   }
   .mode-btn:last-child { border-right: none; }
-  .mode-btn.active {
-    background: var(--text);
-    color: var(--bg);
-  }
+  .mode-btn.active { background: var(--text); color: var(--bg); }
 
   /* ── Message List ── */
   #messages {
@@ -138,7 +147,7 @@
   }
   .chip:hover { color: var(--text); border-color: var(--text-dim); }
 
-  /* ── Mode info banner (shown in Indic mode) ── */
+  /* ── Indic mode info strip ── */
   #mode-banner {
     display: none;
     margin: 0 16px;
@@ -183,7 +192,6 @@
     padding-right: 0;
     color: var(--text-dim);
   }
-  /* Voice-mode bubbles get a subtle left marker */
   .bubble-row.ai .bubble.voice-reply {
     border-left: 2px solid var(--border);
     padding-left: 12px;
@@ -219,7 +227,6 @@
     min-height: 22px;
   }
 
-  /* Voice transcript bar */
   #voice-transcript {
     font-size: 12px;
     color: var(--text-dim);
@@ -237,7 +244,6 @@
     text-overflow: ellipsis;
   }
 
-  /* Recording pulse dot */
   .rec-dot {
     width: 6px; height: 6px;
     background: var(--text);
@@ -250,7 +256,6 @@
     50%       { opacity: 0.2; }
   }
 
-  /* Stop audio button */
   #stop-audio-btn {
     display: none;
     font-size: 11px;
@@ -271,7 +276,6 @@
   #stop-audio-btn:hover { background: var(--border); }
   #stop-audio-btn.visible { display: flex; }
 
-  /* Input row */
   .input-row {
     display: flex;
     align-items: center;
@@ -317,7 +321,6 @@
     border-color: var(--text);
   }
 
-  /* Special mode: mic shows REC label */
   #mic-label {
     font-size: 9px;
     font-family: var(--font-mono);
@@ -329,6 +332,138 @@
   #mic-btn.listening #mic-icon  { display: none; }
 
   svg { pointer-events: none; }
+
+  /* ════════════════════════════════════════════════════════════════════════
+     ── CONTACTS PANEL (slide-up drawer)
+     ════════════════════════════════════════════════════════════════════════ */
+  #contacts-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 100;
+    display: none;
+    align-items: flex-end;
+  }
+  #contacts-overlay.open { display: flex; animation: fadeIn 0.15s ease; }
+
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  #contacts-panel {
+    width: 100%;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    border-radius: 8px 8px 0 0;
+    max-height: 70vh;
+    display: flex;
+    flex-direction: column;
+    animation: slideUp 0.2s ease;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(30px); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .panel-title {
+    font-size: 13px;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-dim);
+  }
+  .panel-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-dim);
+    padding: 4px;
+    display: flex;
+    transition: color 0.15s;
+  }
+  .panel-close:hover { color: var(--text); }
+
+  #contacts-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0;
+  }
+  #contacts-list::-webkit-scrollbar { width: 3px; }
+  #contacts-list::-webkit-scrollbar-thumb { background: var(--border); }
+
+  .contact-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+    gap: 12px;
+  }
+  .contact-row:last-child { border-bottom: none; }
+  .contact-row:hover { background: var(--surface2); }
+
+  .contact-info { flex: 1; min-width: 0; }
+  .contact-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .contact-phone {
+    font-size: 12px;
+    font-family: var(--font-mono);
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+
+  /* Tap-to-call button on each contact row */
+  .contact-call-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 5px 10px;
+    font-size: 11px;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-dim);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+  .contact-call-btn:hover {
+    color: var(--text);
+    border-color: var(--text-dim);
+    background: var(--surface2);
+  }
+
+  .contacts-empty {
+    padding: 32px 20px;
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 13px;
+    line-height: 1.7;
+  }
+  .contacts-empty span { display: block; color: var(--text); font-size: 14px; margin-bottom: 6px; }
+
+  .panel-footer {
+    padding: 12px 20px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    font-family: var(--font-mono);
+    color: var(--text-dim);
+    flex-shrink: 0;
+    text-align: center;
+  }
 </style>
 </head>
 <body>
@@ -336,8 +471,17 @@
 
   <!-- ── Header ── -->
   <header>
-    <div class="logo">
+    <div class="header-left">
       <span class="logo-text">Mail Mind</span>
+      <!-- Contacts directory icon -->
+      <button id="contacts-btn" title="Contacts directory" onclick="openContacts()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+      </button>
     </div>
     <div id="mode-toggle">
       <button class="mode-btn active" id="btn-normal"  onclick="setMode('normal')">Normal</button>
@@ -354,12 +498,14 @@
   <div id="messages">
     <div class="welcome" id="welcome">
       <h2>Email Agent</h2>
-      <p>Interface initialized. Awaiting commands to read, summarize, or compose emails.</p>
+      <p>Read and send emails, save contacts, and place AI voice calls — all by chat or voice.</p>
       <div class="chips">
         <div class="chip" onclick="quickSend('Read my latest 3 emails')">Read inbox</div>
         <div class="chip" onclick="quickSend('Any unread emails today?')">Check unread</div>
         <div class="chip" onclick="quickSend('Summarise my inbox')">Summarize messages</div>
         <div class="chip" onclick="quickSend('Send test email to myself')">Send a test email</div>
+        <div class="chip" onclick="quickSend('Save contact: Ravi Kumar, +919876543210')">Save a contact</div>
+        <div class="chip" onclick="openContacts()">View contact directory</div>
       </div>
     </div>
   </div>
@@ -401,43 +547,64 @@
     </div>
   </div>
 
+  <!-- ════════════════════════════════════════════════════════════════════
+       ── CONTACTS PANEL (slide-up drawer, toggled by #contacts-btn)
+       ════════════════════════════════════════════════════════════════════ -->
+  <div id="contacts-overlay" onclick="handleOverlayClick(event)">
+    <div id="contacts-panel">
+
+      <div class="panel-header">
+        <span class="panel-title">Directory</span>
+        <button class="panel-close" onclick="closeContacts()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Contact rows are injected here by loadContacts() -->
+      <div id="contacts-list"></div>
+
+      <div class="panel-footer">
+        Add contacts by telling the agent: "Save [Name], [Phone]"
+      </div>
+
+    </div>
+  </div>
+
 </div><!-- /#app -->
 
 <script>
 // ════════════════════════════════════════════════════════════════════════════
 // ── GLOBAL STATE
 // ════════════════════════════════════════════════════════════════════════════
-let SESSION_ID    = null;    // shared across both modes
-let currentMode   = 'normal'; // 'normal' | 'special'
-let isListening   = false;
+let SESSION_ID         = null;
+let currentMode        = 'normal';
+let isListening        = false;
 let wasManuallyStopped = false;
 
-let audioContext     = null;
-let analyser         = null;
-let microphone       = null;
-let javascriptNode   = null;
+let audioContext    = null;
+let analyser        = null;
+let microphone      = null;
+let javascriptNode  = null;
 
-// Normal mode (Web Speech API)
 const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition = null;
 
-// Normal mode TTS
 let currentUtterance = null;
 let typingInterval   = null;
 
-// Special mode (MediaRecorder)
 let mediaRecorder = null;
 let audioChunks   = [];
 let mediaStream   = null;
 
-// Special mode TTS (HTML5 Audio)
 let currentAudioEl = null;
 
-// Language label map for the info banner
 const LANG_LABELS = {
-  'hi-IN': 'Hindi', 'ta-IN': 'Tamil', 'te-IN': 'Telugu',
-  'kn-IN': 'Kannada', 'ml-IN': 'Malayalam', 'mr-IN': 'Marathi',
-  'bn-IN': 'Bengali', 'gu-IN': 'Gujarati', 'pa-IN': 'Punjabi',
+  'hi-IN': 'Hindi',  'ta-IN': 'Tamil',    'te-IN': 'Telugu',
+  'kn-IN': 'Kannada','ml-IN': 'Malayalam','mr-IN': 'Marathi',
+  'bn-IN': 'Bengali','gu-IN': 'Gujarati', 'pa-IN': 'Punjabi',
 };
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -461,17 +628,14 @@ function setMode(mode) {
   if (isListening) stopListening();
 
   currentMode = mode;
-
   document.getElementById('btn-normal').classList.toggle('active', mode === 'normal');
   document.getElementById('btn-special').classList.toggle('active', mode === 'special');
 
   if (mode === 'special') {
     modeBanner.classList.add('visible');
     inputEl.placeholder = 'Type in English or tap mic to speak in your language...';
-    // Detect lang label from /health endpoint (best-effort, non-blocking)
     fetch('/health').then(r => r.json()).then(d => {
-      const lbl = LANG_LABELS[d.sarvam_lang] || d.sarvam_lang || 'Hindi';
-      langLabel.textContent = lbl;
+      langLabel.textContent = LANG_LABELS[d.sarvam_lang] || d.sarvam_lang || 'Hindi';
     }).catch(() => {});
   } else {
     modeBanner.classList.remove('visible');
@@ -540,29 +704,22 @@ function removeTyping() {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// ── STOP AUDIO (handles both browser TTS and Sarvam HTML5 Audio)
+// ── STOP AUDIO
 // ════════════════════════════════════════════════════════════════════════════
 function stopAudio() {
   wasManuallyStopped = true;
-
-  // Stop browser Web Speech TTS
   if (window.speechSynthesis) window.speechSynthesis.cancel();
-
-  // Stop Sarvam HTML5 Audio element
   if (currentAudioEl) {
     currentAudioEl.pause();
     currentAudioEl.src = '';
     currentAudioEl = null;
   }
-
-  // Clear typing animation interval
   if (typingInterval) { clearInterval(typingInterval); typingInterval = null; }
-
   stopAudioBtn.classList.remove('visible');
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// ── NORMAL MODE: speakAndType  (Web Speech API TTS + character-by-char reveal)
+// ── NORMAL MODE TTS: speakAndType
 // ════════════════════════════════════════════════════════════════════════════
 function speakAndType(text, bubbleEl) {
   if (!window.speechSynthesis) {
@@ -579,7 +736,6 @@ function speakAndType(text, bubbleEl) {
 
   stopAudioBtn.classList.add('visible');
 
-  // Character-reveal animation in sync with speech
   let i = 0;
   bubbleEl.innerHTML = '';
   typingInterval = setInterval(() => {
@@ -593,7 +749,6 @@ function speakAndType(text, bubbleEl) {
     if (typingInterval) clearInterval(typingInterval);
     bubbleEl.innerHTML = text.replace(/\n/g, '<br>');
     stopAudioBtn.classList.remove('visible');
-
     if (!wasManuallyStopped) {
       setTimeout(() => {
         if (window.AndroidVoiceBridge) {
@@ -619,7 +774,7 @@ function speakAndType(text, bubbleEl) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// ── SPECIAL MODE: playSarvamAudio  (HTML5 Audio + auto-restart listening)
+// ── SPECIAL MODE: playSarvamAudio
 // ════════════════════════════════════════════════════════════════════════════
 function playSarvamAudio(base64Data) {
   stopAudio();
@@ -629,19 +784,14 @@ function playSarvamAudio(base64Data) {
   currentAudioEl = audio;
   stopAudioBtn.classList.add('visible');
 
-  audio.onplay = () => {
-    stopAudioBtn.classList.add('visible');
-  };
+  audio.onplay = () => { stopAudioBtn.classList.add('visible'); };
 
   audio.onended = () => {
     stopAudioBtn.classList.remove('visible');
     currentAudioEl = null;
-
-    // Hands-free loop: auto-restart Indic voice recording
     if (!wasManuallyStopped && currentMode === 'special') {
       setTimeout(() => {
         if (window.AndroidVoiceBridge) {
-          // Android native bridge path
           isListening = true;
           micBtn.classList.add('listening');
           voiceBar.classList.add('visible');
@@ -654,8 +804,7 @@ function playSarvamAudio(base64Data) {
     }
   };
 
-  audio.onerror = (e) => {
-    console.error('Sarvam audio playback error:', e);
+  audio.onerror = () => {
     stopAudioBtn.classList.remove('visible');
     currentAudioEl = null;
   };
@@ -668,14 +817,13 @@ function playSarvamAudio(base64Data) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// ── NORMAL MODE: sendMessage  (text → /chat → browser TTS)
+// ── NORMAL MODE: sendMessage  (text → /chat → TTS)
 // ════════════════════════════════════════════════════════════════════════════
 async function sendMessage() {
   const text = inputEl.value.trim();
   if (!text) return;
 
   stopAudio();
-
   addBubble('me', text.replace(/\n/g, '<br>'));
   inputEl.value = '';
   inputEl.style.height = 'auto';
@@ -711,18 +859,11 @@ async function sendMessage() {
 // ════════════════════════════════════════════════════════════════════════════
 async function sendSpecialVoice(audioBlob, mimeType) {
   stopAudio();
-
   addBubble('me', '[Voice message]');
   sendBtn.disabled = true;
   addTyping('Transcribing...');
 
-  // Animate through the pipeline stages while waiting
-  const stages = [
-    'Transcribing...',
-    'Thinking...',
-    'Translating...',
-    'Generating audio...',
-  ];
+  const stages = ['Transcribing...', 'Thinking...', 'Translating...', 'Generating audio...'];
   let stageIdx = 0;
   const stageInterval = setInterval(() => {
     stageIdx = (stageIdx + 1) % stages.length;
@@ -732,8 +873,7 @@ async function sendSpecialVoice(audioBlob, mimeType) {
   try {
     const ext = mimeType.includes('webm') ? 'webm'
               : mimeType.includes('ogg')  ? 'ogg'
-              : mimeType.includes('mp4')  ? 'mp4'
-              : 'wav';
+              : mimeType.includes('mp4')  ? 'mp4' : 'wav';
 
     const formData = new FormData();
     formData.append('audio', audioBlob, `recording.${ext}`);
@@ -747,11 +887,7 @@ async function sendSpecialVoice(audioBlob, mimeType) {
 
     SESSION_ID = data.session_id;
     removeTyping();
-
-    // Show translated Indic text in a styled bubble
     addBubble('ai', data.reply_text.replace(/\n/g, '<br>'), 'voice-reply');
-
-    // Play the Sarvam-generated audio (auto-restarts recording when done)
     playSarvamAudio(data.audio_base64);
 
   } catch (err) {
@@ -764,11 +900,9 @@ async function sendSpecialVoice(audioBlob, mimeType) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// ── MIC TOGGLE ROUTER  (branches on currentMode)
+// ── MIC TOGGLE ROUTER
 // ════════════════════════════════════════════════════════════════════════════
 function toggleMic() {
-
-  // ── Android native bridge (works for both modes) ─────────────────────────
   if (window.AndroidVoiceBridge) {
     if (isListening) {
       isListening = false;
@@ -780,42 +914,30 @@ function toggleMic() {
       isListening = true;
       micBtn.classList.add('listening');
       voiceBar.classList.add('visible');
-      txText.textContent = currentMode === 'special'
-        ? 'Recording... tap mic to send'
-        : 'Listening via Android...';
+      txText.textContent = currentMode === 'special' ? 'Recording... tap mic to send' : 'Listening via Android...';
       window.AndroidVoiceBridge.startSpeechRecognition();
     }
     return;
   }
 
-  // ── Special mode: MediaRecorder ──────────────────────────────────────────
   if (currentMode === 'special') {
-    if (isListening) {
-      stopSpecialListening();   // stop → triggers onstop → sendSpecialVoice
-    } else {
-      startSpecialListening();
-    }
+    isListening ? stopSpecialListening() : startSpecialListening();
     return;
   }
 
-  // ── Normal mode: Web Speech API ──────────────────────────────────────────
-  if (!SpeechRec) {
-    alert('Speech recognition is not supported in this browser.');
-    return;
-  }
+  if (!SpeechRec) { alert('Speech recognition is not supported in this browser.'); return; }
   isListening ? stopListening() : startListening();
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// ── NORMAL MODE: Web Speech API listener
+// ── NORMAL MODE: Web Speech API
 // ════════════════════════════════════════════════════════════════════════════
 function startListening() {
   stopAudio();
-
   recognition = new SpeechRec();
-  recognition.lang            = 'en-US';
-  recognition.interimResults  = true;
-  recognition.continuous      = false;
+  recognition.lang           = 'en-US';
+  recognition.interimResults = true;
+  recognition.continuous     = false;
 
   recognition.onstart = () => {
     isListening = true;
@@ -853,17 +975,11 @@ function stopListening() {
   isListening = false;
   micBtn.classList.remove('listening');
   voiceBar.classList.remove('visible');
-  if (recognition) {
-    try { recognition.stop(); } catch (e) {}
-    recognition = null;
-  }
+  if (recognition) { try { recognition.stop(); } catch (e) {} recognition = null; }
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// ── SPECIAL MODE: MediaRecorder (Indic voice → blob → /chat-voice)
-// ════════════════════════════════════════════════════════════════════════════
-// ════════════════════════════════════════════════════════════════════════════
-// ── INDIC MODE VOICE RECORDING WITH SILENCE DETECTION
+// ── SPECIAL MODE: MediaRecorder + Silence Detection
 // ════════════════════════════════════════════════════════════════════════════
 async function startSpecialListening() {
   stopAudio();
@@ -881,49 +997,40 @@ async function startSpecialListening() {
     return;
   }
 
-  // Set up Web Audio API nodes to measure mic volume frames
+  // Set up Web Audio API silence detection
   try {
-    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    analyser = audioContext.createAnalyser();
-    microphone = audioContext.createMediaStreamSource(mediaStream);
-    javascriptNode = audioContext.createScriptProcessor(2048, 1, 1);
+    audioContext    = new (window.AudioContext || window.webkitAudioContext)();
+    analyser        = audioContext.createAnalyser();
+    microphone      = audioContext.createMediaStreamSource(mediaStream);
+    javascriptNode  = audioContext.createScriptProcessor(2048, 1, 1);
 
     analyser.smoothingTimeConstant = 0.3;
-    analyser.fftSize = 1024;
+    analyser.fftSize               = 1024;
 
     microphone.connect(analyser);
     analyser.connect(javascriptNode);
     javascriptNode.connect(audioContext.destination);
 
-    let silenceStart = Date.now();
-    const SILENCE_THRESHOLD = 8;     // Noise floor volume threshold
-    const SILENCE_DURATION = 2000;    // 2 full seconds of continuous silence auto-stops
+    let silenceStart         = Date.now();
+    const SILENCE_THRESHOLD  = 8;       // volume noise floor
+    const SILENCE_DURATION   = 2000;    // 2s of silence auto-submits
 
     javascriptNode.onaudioprocess = () => {
-      const array = new Uint8Array(analyser.frequencyBinCount);
+      const array  = new Uint8Array(analyser.frequencyBinCount);
       analyser.getByteFrequencyData(array);
-      let values = 0;
+      const avg    = array.reduce((a, b) => a + b, 0) / array.length;
 
-      for (let i = 0; i < array.length; i++) {
-        values += array[i];
-      }
-      const average = values / array.length;
-
-      // If user is actively speaking, push the timer out
-      if (average > SILENCE_THRESHOLD) {
-        silenceStart = Date.now(); 
-      } else {
-        // If they stop talking for 2 seconds, execute auto-send
-        if (Date.now() - silenceStart > SILENCE_DURATION) {
-          if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-            txText.textContent = 'Processing speech...';
-            stopSpecialListening(); 
-          }
+      if (avg > SILENCE_THRESHOLD) {
+        silenceStart = Date.now();
+      } else if (Date.now() - silenceStart > SILENCE_DURATION) {
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+          txText.textContent = 'Processing speech...';
+          stopSpecialListening();
         }
       }
     };
   } catch (e) {
-    console.error("Silence detection setup failed:", e);
+    console.error('Silence detection setup failed:', e);
   }
 
   const mimeType =
@@ -933,7 +1040,9 @@ async function startSpecialListening() {
     MediaRecorder.isTypeSupported('audio/mp4')              ? 'audio/mp4'              : '';
 
   try {
-    mediaRecorder = mimeType ? new MediaRecorder(mediaStream, { mimeType }) : new MediaRecorder(mediaStream);
+    mediaRecorder = mimeType
+      ? new MediaRecorder(mediaStream, { mimeType })
+      : new MediaRecorder(mediaStream);
   } catch (err) {
     console.error('MediaRecorder init error:', err);
     mediaStream.getTracks().forEach(t => t.stop());
@@ -941,15 +1050,17 @@ async function startSpecialListening() {
   }
 
   audioChunks = [];
-  mediaRecorder.ondataavailable = (evt) => { if (evt.data && evt.data.size > 0) audioChunks.push(evt.data); };
+  mediaRecorder.ondataavailable = (evt) => {
+    if (evt.data && evt.data.size > 0) audioChunks.push(evt.data);
+  };
 
   mediaRecorder.onstop = () => {
-    // Teardown raw audio listener threads safely
+    // Teardown audio pipeline
     if (javascriptNode) { javascriptNode.disconnect(); javascriptNode = null; }
-    if (microphone) { microphone.disconnect(); microphone = null; }
-    if (analyser) { analyser.disconnect(); analyser = null; }
-    if (audioContext) { audioContext.close(); audioContext = null; }
-    if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
+    if (microphone)     { microphone.disconnect();     microphone     = null; }
+    if (analyser)       { analyser.disconnect();       analyser       = null; }
+    if (audioContext)   { audioContext.close();        audioContext   = null; }
+    if (mediaStream)    { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
 
     isListening = false;
     micBtn.classList.remove('listening');
@@ -958,8 +1069,7 @@ async function startSpecialListening() {
     if (audioChunks.length === 0) return;
 
     const effectiveMime = mimeType || 'audio/webm';
-    const audioBlob     = new Blob(audioChunks, { type: effectiveMime });
-    sendSpecialVoice(audioBlob, effectiveMime);
+    sendSpecialVoice(new Blob(audioChunks, { type: effectiveMime }), effectiveMime);
   };
 
   mediaRecorder.onerror = () => { stopSpecialListening(); };
@@ -978,19 +1088,92 @@ function stopSpecialListening() {
     isListening = false;
     micBtn.classList.remove('listening');
     voiceBar.classList.remove('visible');
-    
     if (javascriptNode) { javascriptNode.disconnect(); javascriptNode = null; }
-    if (microphone) { microphone.disconnect(); microphone = null; }
-    if (analyser) { analyser.disconnect(); analyser = null; }
-    if (audioContext) { audioContext.close(); audioContext = null; }
-    if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
+    if (microphone)     { microphone.disconnect();     microphone     = null; }
+    if (analyser)       { analyser.disconnect();       analyser       = null; }
+    if (audioContext)   { audioContext.close();        audioContext   = null; }
+    if (mediaStream)    { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
   }
 }
 
 // ════════════════════════════════════════════════════════════════════════════
+// ── CONTACTS PANEL
+// ════════════════════════════════════════════════════════════════════════════
+
+function openContacts() {
+  document.getElementById('contacts-overlay').classList.add('open');
+  loadContacts();
+}
+
+function closeContacts() {
+  document.getElementById('contacts-overlay').classList.remove('open');
+}
+
+// Close when tapping the dark overlay background (not the panel itself)
+function handleOverlayClick(evt) {
+  if (evt.target === document.getElementById('contacts-overlay')) closeContacts();
+}
+
+async function loadContacts() {
+  const list = document.getElementById('contacts-list');
+  list.innerHTML = '<div class="contacts-empty" style="padding:20px;text-align:center;color:var(--text-dim);font-family:var(--font-mono);font-size:12px;">Loading...</div>';
+
+  try {
+    const res  = await fetch('/contacts');
+    const data = await res.json();
+    const contacts = data.contacts || [];
+
+    if (contacts.length === 0) {
+      list.innerHTML = `
+        <div class="contacts-empty">
+          <span>No contacts yet</span>
+          Say "Save Ravi Kumar, +919876543210" to add one via chat.
+        </div>`;
+      return;
+    }
+
+    list.innerHTML = contacts.map(c => `
+      <div class="contact-row">
+        <div class="contact-info">
+          <div class="contact-name">${escHtml(c.name)}</div>
+          <div class="contact-phone">${escHtml(c.phone_number)}</div>
+        </div>
+        <button class="contact-call-btn"
+          onclick="callContact('${escHtml(c.name)}')">
+          Call
+        </button>
+      </div>
+    `).join('');
+
+  } catch (err) {
+    list.innerHTML = `<div class="contacts-empty">Error: ${err.message}</div>`;
+  }
+}
+
+/**
+ * Tapping "Call" on a contact row closes the panel and sends a call command
+ * directly into the chat as if the user typed it. The AI handles the rest.
+ */
+function callContact(name) {
+  closeContacts();
+  inputEl.value = `Call ${name} and tell them I will be in touch soon.`;
+  inputEl.style.height = 'auto';
+  inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px';
+  inputEl.focus();
+  // Scroll to bottom so user sees the prefilled command
+  inputEl.setSelectionRange(inputEl.value.length, inputEl.value.length);
+}
+
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// ════════════════════════════════════════════════════════════════════════════
 // ── ANDROID NATIVE BRIDGE CALLBACKS
-// Works for both normal and special modes — Android side handles STT,
-// then calls window.onAndroidSpeech with the transcribed text.
 // ════════════════════════════════════════════════════════════════════════════
 window.onAndroidSpeech = function(text, isFinal) {
   if (text) {
@@ -998,11 +1181,7 @@ window.onAndroidSpeech = function(text, isFinal) {
     inputEl.style.height = 'auto';
     inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px';
   }
-
   if (isFinal && inputEl.value.trim() !== '') {
-    // In special mode, typing is still sent to /chat (English fallback).
-    // True Indic voice from Android is handled by the bridge calling
-    // startSpecialListening via the mediaRecorder path instead.
     setTimeout(() => sendMessage(), 500);
   }
 };
