@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 
 from livekit import api
-from livekit.agents import AutoParticipantAgent, JobContext, WorkerOptions, cli
+from livekit.agents import WorkerAgent, JobContext, WorkerOptions, cli
 from livekit.plugins import openai
 
 # Load environment variables
@@ -130,7 +130,7 @@ async def entrypoint(ctx: JobContext):
         f"Handle any questions contextually."
     )
 
-    agent = AutoParticipantAgent(
+    agent = WorkerAgent(
         instructions=system_instructions,
         llm=openai.LLM(model="llama-3.3-70b-versatile", base_url="https://api.groq.com/openai/v1", api_key=groq_key),
         stt=openai.STT(model="whisper-large-v3", base_url="https://api.groq.com/openai/v1", api_key=groq_key),
