@@ -9,8 +9,9 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 
 from livekit import api
-from livekit.agents import WorkerAgent, JobContext, WorkerOptions, cli
-from livekit.plugins import openai
+from livekit.agents import JobContext, WorkerOptions, cli, llm
+from livekit.agents.pipeline import VoicePipelineAgent
+from livekit.plugins import openai, silero
 
 # Load environment variables
 load_dotenv()
@@ -74,7 +75,6 @@ async def trigger_call(payload: OutboundCallRequest):
 async def summarize_and_webhook(history_text: str, contact_name: str):
     """Uses Groq to summarize the transcript and sends it back to app.py"""
     groq_key = os.getenv("SECONDARY_GROQ_API_KEY")
-    # Provide the URL where your main app.py is hosted (or localhost for testing)
     main_app_url = os.getenv("MAIN_APP_URL", "http://localhost:8000")
     
     prompt = (
@@ -99,7 +99,6 @@ async def summarize_and_webhook(history_text: str, contact_name: str):
             summary = resp.json()["choices"][0]["message"]["content"]
             log.info(f"Summary Generated: {summary}")
             
-            # Send webhook to your main app to trigger the self-email
             webhook_payload = {"contact_name": contact_name, "summary": summary}
             log.info("Dispatching summary webhook to Main App...")
             wh_resp = await client.post(f"{main_app_url}/webhook/call-summary", json=webhook_payload, timeout=10.0)
@@ -123,22 +122,28 @@ async def entrypoint(ctx: JobContext):
     initial_message = call_metadata["initial_message"]
     groq_key = os.getenv("SECONDARY_GROQ_API_KEY")
 
-    system_instructions = (
-        f"You are a helpful, professional AI voice assistant calling on behalf of Manjunath. "
-        f"You are speaking directly to {contact_name}. "
-        f"Keep responses concise. Your objective is to deliver this message: '{initial_message}'. "
-        f"Handle any questions contextually."
+    # Initialize the system persona logic using the new ChatContext architecture
+    initial_ctx = llm.ChatContext().append(
+        role="system",
+        text=(
+            f"You are a helpful, professional AI voice assistant calling on behalf of Manjunath. "
+            f"You are speaking directly to {contact_name}. "
+            f"Keep responses concise. Your objective is to deliver this message: '{initial_message}'. "
+            f"Handle any questions contextually."
+        )
     )
 
-    agent = WorkerAgent(
-        instructions=system_instructions,
-        llm=openai.LLM(model="llama-3.3-70b-versatile", base_url="https://api.groq.com/openai/v1", api_key=groq_key),
+    # Initialize the modern Pipeline Agent with Silero VAD for interruptability
+    agent = VoicePipelineAgent(
+        vad=silero.VAD.load(),
         stt=openai.STT(model="whisper-large-v3", base_url="https://api.groq.com/openai/v1", api_key=groq_key),
-        tts=openai.TTS() 
+        llm=openai.LLM(model="llama-3.3-70b-versatile", base_url="https://api.groq.com/openai/v1", api_key=groq_key),
+        tts=openai.TTS(),
+        chat_ctx=initial_ctx
     )
 
-    await agent.start(ctx.room)
-    await agent.say(f"Hello {contact_name}, I am an AI voice assistant calling on behalf of Manjunath. He wanted me to tell you that: {initial_message}")
+    agent.start(ctx.room)
+    await agent.say(f"Hello {contact_name}, I am an AI voice assistant calling on behalf of Manjunath. He wanted me to tell you that: {initial_message}", allow_interruptions=True)
 
     # Create an event flag to pause script execution until the user hangs up
     call_ended = asyncio.Event()
@@ -148,7 +153,6 @@ async def entrypoint(ctx: JobContext):
         log.info(f"Call with {contact_name} disconnected. Triggering wrap-up.")
         call_ended.set()
 
-    # Pause here and keep the agent alive until the phone hangs up
     await call_ended.wait()
 
     # The call is over! Extract the transcript for the summary.
@@ -156,10 +160,11 @@ async def entrypoint(ctx: JobContext):
     for msg in agent.chat_ctx.messages:
         # We skip the system prompt to save token usage
         if msg.role != "system":
-            history_text += f"{msg.role.capitalize()}: {msg.content}\n"
+            # Extract content from the new message object structure
+            content = msg.content if isinstance(msg.content, str) else str(msg.content)
+            history_text += f"{msg.role.capitalize()}: {content}\n"
             
     if history_text.strip():
-        # Await the summarization webhook before letting the worker shut down
         await summarize_and_webhook(history_text, contact_name)
 
 
