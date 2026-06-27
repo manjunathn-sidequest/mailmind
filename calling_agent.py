@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from livekit import api
 from livekit.agents import JobContext, WorkerOptions, cli
 from livekit.agents import AgentSession, Agent
-from livekit.plugins import openai, silero
+from livekit.plugins import openai
 
 # Load environment variables
 load_dotenv()
@@ -131,7 +131,6 @@ async def entrypoint(ctx: JobContext):
 
     # The new LiveKit 1.x AgentSession orchestrator
     session = AgentSession(
-        vad=silero.VAD.load(),
         stt=openai.STT(model="whisper-large-v3", base_url="https://api.groq.com/openai/v1", api_key=groq_key),
         llm=openai.LLM(model="llama-3.3-70b-versatile", base_url="https://api.groq.com/openai/v1", api_key=groq_key),
         tts=openai.TTS()
