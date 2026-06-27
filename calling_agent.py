@@ -9,8 +9,8 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 
 from livekit import api
-from livekit.agents import JobContext, WorkerOptions, cli, llm
-from livekit.agents.pipeline import VoicePipelineAgent
+from livekit.agents import JobContext, WorkerOptions, cli
+from livekit.agents import AgentSession, Agent
 from livekit.plugins import openai, silero
 
 # Load environment variables
@@ -122,28 +122,29 @@ async def entrypoint(ctx: JobContext):
     initial_message = call_metadata["initial_message"]
     groq_key = os.getenv("SECONDARY_GROQ_API_KEY")
 
-    # Initialize the system persona logic using the new ChatContext architecture
-    initial_ctx = llm.ChatContext().append(
-        role="system",
-        text=(
-            f"You are a helpful, professional AI voice assistant calling on behalf of Manjunath. "
-            f"You are speaking directly to {contact_name}. "
-            f"Keep responses concise. Your objective is to deliver this message: '{initial_message}'. "
-            f"Handle any questions contextually."
-        )
+    system_instructions = (
+        f"You are a helpful, professional AI voice assistant calling on behalf of Manjunath. "
+        f"You are speaking directly to {contact_name}. "
+        f"Keep responses concise. Your objective is to deliver this message: '{initial_message}'. "
+        f"Handle any questions contextually."
     )
 
-    # Initialize the modern Pipeline Agent with Silero VAD for interruptability
-    agent = VoicePipelineAgent(
+    # The new LiveKit 1.x AgentSession orchestrator
+    session = AgentSession(
         vad=silero.VAD.load(),
         stt=openai.STT(model="whisper-large-v3", base_url="https://api.groq.com/openai/v1", api_key=groq_key),
         llm=openai.LLM(model="llama-3.3-70b-versatile", base_url="https://api.groq.com/openai/v1", api_key=groq_key),
-        tts=openai.TTS(),
-        chat_ctx=initial_ctx
+        tts=openai.TTS()
     )
 
-    agent.start(ctx.room)
-    await agent.say(f"Hello {contact_name}, I am an AI voice assistant calling on behalf of Manjunath. He wanted me to tell you that: {initial_message}", allow_interruptions=True)
+    agent = Agent(instructions=system_instructions)
+    
+    # Wire the session to the room
+    await session.start(agent=agent, room=ctx.room)
+    
+    # Command the LLM to kick off the call natively
+    intro_text = f"Hello {contact_name}, I am an AI voice assistant calling on behalf of Manjunath. He wanted me to tell you that: {initial_message}"
+    await session.generate_reply(instructions=f"Greet the user immediately by saying EXACTLY this: '{intro_text}'")
 
     # Create an event flag to pause script execution until the user hangs up
     call_ended = asyncio.Event()
@@ -155,14 +156,18 @@ async def entrypoint(ctx: JobContext):
 
     await call_ended.wait()
 
-    # The call is over! Extract the transcript for the summary.
+    # Safely extract the transcript history using the 1.x context manager
     history_text = ""
-    for msg in agent.chat_ctx.messages:
-        # We skip the system prompt to save token usage
-        if msg.role != "system":
-            # Extract content from the new message object structure
-            content = msg.content if isinstance(msg.content, str) else str(msg.content)
-            history_text += f"{msg.role.capitalize()}: {content}\n"
+    ctx_to_check = getattr(session, 'chat_ctx', None) or getattr(agent, 'chat_ctx', None)
+    
+    if ctx_to_check:
+        for msg in ctx_to_check.messages:
+            if msg.role != "system":
+                # Handle varying content structures in v1.x (strings vs. lists)
+                content = msg.content
+                if isinstance(content, list):
+                    content = " ".join([str(c) for c in content if isinstance(c, str)])
+                history_text += f"{msg.role.capitalize()}: {content}\n"
             
     if history_text.strip():
         await summarize_and_webhook(history_text, contact_name)
