@@ -62,7 +62,7 @@ async def trigger_call(payload: OutboundCallRequest):
                 participant_identity=f"sip_{clean_phone}"
             )
         )
-        await lk_api.close()
+      
         return {"status": "success", "message": f"Call dispatched for room: {room_name}"}
         
     except Exception as e:
