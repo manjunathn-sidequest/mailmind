@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from livekit import api
 from livekit.agents import JobContext, WorkerOptions, cli
 from livekit.agents import AgentSession, Agent
-from livekit.plugins import openai
+from livekit.plugins import openai, hume
 
 # Load environment variables
 load_dotenv()
@@ -133,7 +133,7 @@ async def entrypoint(ctx: JobContext):
     session = AgentSession(
         stt=openai.STT(model="whisper-large-v3", base_url="https://api.groq.com/openai/v1", api_key=groq_key),
         llm=openai.LLM(model="llama-3.3-70b-versatile", base_url="https://api.groq.com/openai/v1", api_key=groq_key),
-        tts=openai.TTS()
+        tts=hume.TTS()
     )
 
     agent = Agent(instructions=system_instructions)
